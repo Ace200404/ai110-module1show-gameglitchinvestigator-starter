@@ -1,68 +1,6 @@
 import random
 import streamlit as st
-
-def get_range_for_difficulty(difficulty: str):
-    if difficulty == "Easy":
-        return 1, 20
-    if difficulty == "Normal":
-        return 1, 100
-    if difficulty == "Hard":
-        return 1, 50
-    return 1, 100
-
-
-def parse_guess(raw: str):
-    if raw is None:
-        return False, None, "Enter a guess."
-
-    if raw == "":
-        return False, None, "Enter a guess."
-
-    try:
-        if "." in raw:
-            value = int(float(raw))
-        else:
-            value = int(raw)
-    except Exception:
-        return False, None, "That is not a number."
-
-    return True, value, None
-
-
-def check_guess(guess, secret):
-    if guess == secret:
-        return "Win", "🎉 Correct!"
-
-    try:
-        if guess > secret:
-            return "Too High", "📈 Go HIGHER!"
-        else:
-            return "Too Low", "📉 Go LOWER!"
-    except TypeError:
-        g = str(guess)
-        if g == secret:
-            return "Win", "🎉 Correct!"
-        if g > secret:
-            return "Too High", "📈 Go HIGHER!"
-        return "Too Low", "📉 Go LOWER!"
-
-
-def update_score(current_score: int, outcome: str, attempt_number: int):
-    if outcome == "Win":
-        points = 100 - 10 * (attempt_number + 1)
-        if points < 10:
-            points = 10
-        return current_score + points
-
-    if outcome == "Too High":
-        if attempt_number % 2 == 0:
-            return current_score + 5
-        return current_score - 5
-
-    if outcome == "Too Low":
-        return current_score - 5
-
-    return current_score
+from logic_utils import get_range_for_difficulty, parse_guess, check_guess, update_score
 
 st.set_page_config(page_title="Glitchy Guesser", page_icon="🎮")
 
@@ -104,6 +42,12 @@ if "status" not in st.session_state:
 if "history" not in st.session_state:
     st.session_state.history = []
 
+# FIX: AI suggested adding a dict to track guesses per round so duplicate submissions
+# don't waste attempts. Collaborated in agent mode: described the feature, AI generated
+# the dict structure and the duplicate-check logic inside the submit handler.
+if "guessed_numbers" not in st.session_state:
+    st.session_state.guessed_numbers = {}
+
 st.subheader("Make a guess")
 
 st.info(
@@ -117,6 +61,7 @@ with st.expander("Developer Debug Info"):
     st.write("Score:", st.session_state.score)
     st.write("Difficulty:", difficulty)
     st.write("History:", st.session_state.history)
+    st.write("Guessed Numbers:", st.session_state.guessed_numbers)
 
 raw_guess = st.text_input(
     "Enter your guess:",
@@ -131,9 +76,16 @@ with col2:
 with col3:
     show_hint = st.checkbox("Show hint", value=True)
 
+# FIX: AI traced the restart bug — the original handler never reset `status`, so after
+# a win/loss the st.stop() guard on line 90 fired every rerun, making submit unreachable.
+# AI added `status = "playing"` here; verified by reading the Streamlit execution flow
+# and confirmed with the AppTest test `test_new_game_resets_status_to_playing`.
 if new_game:
     st.session_state.attempts = 0
     st.session_state.secret = random.randint(1, 100)
+    st.session_state.status = "playing"
+    st.session_state.guessed_numbers = {}
+    st.session_state.history = []
     st.success("New game started.")
     st.rerun()
 
@@ -145,14 +97,18 @@ if st.session_state.status != "playing":
     st.stop()
 
 if submit:
-    st.session_state.attempts += 1
-
     ok, guess_int, err = parse_guess(raw_guess)
 
     if not ok:
-        st.session_state.history.append(raw_guess)
         st.error(err)
+    # FIX: AI moved the attempts increment below this duplicate check so a repeated
+    # guess never costs an attempt. The dict lookup and warning message were also
+    # AI-generated; confirmed by `test_duplicate_guess_does_not_use_attempt` passing.
+    elif guess_int in st.session_state.guessed_numbers:
+        prev_result = st.session_state.guessed_numbers[guess_int]
+        st.warning(f"You already guessed {guess_int} this round (result: {prev_result}). Try a different number — no attempt used.")
     else:
+        st.session_state.attempts += 1
         st.session_state.history.append(guess_int)
 
         if st.session_state.attempts % 2 == 0:
@@ -161,6 +117,7 @@ if submit:
             secret = st.session_state.secret
 
         outcome, message = check_guess(guess_int, secret)
+        st.session_state.guessed_numbers[guess_int] = outcome
 
         if show_hint:
             st.warning(message)
