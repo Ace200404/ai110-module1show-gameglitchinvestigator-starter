@@ -91,13 +91,14 @@ The AI wrote the entire `test_app_behavior.py` file. It chose `streamlit.testing
 
 ## 4. What did you learn about Streamlit and state?
 
-- How would you explain Streamlit "reruns" and session state to a friend who has never used Streamlit?
+Every time a user interacts with a Streamlit widget — clicks a button, types in a text box — Streamlit re-runs the entire Python script from top to bottom, as if the page refreshed. Imagine it like pressing F5 on a webpage every single time you click anything. Because of this, any plain Python variable you set mid-script gets thrown away the moment the script reruns. `st.session_state` is the solution: it's a dictionary that Streamlit preserves across reruns, so values survive the "refresh." The core lesson from this project is that you have to be very deliberate about what goes into session state and, just as importantly, when you reset it. The restart bug was a perfect example — `status` was stored in session state, it changed to `"won"` or `"lost"` at the end of a game, and because the new-game handler never wrote `"playing"` back into it, the game was permanently stuck in a finished state even after clicking New Game.
 
 ---
 
 ## 5. Looking ahead: your developer habits
 
-- What is one habit or strategy from this project that you want to reuse in future labs or projects?
-  - This could be a testing habit, a prompting strategy, or a way you used Git.
-- What is one thing you would do differently next time you work with AI on a coding task?
-- In one or two sentences, describe how this project changed the way you think about AI generated code.
+**Habit to reuse:** Always verify AI-generated tests by reading them line by line before trusting the pass/fail result. In this project, a test timed out and initially looked like a broken fix — but reading the traceback showed the problem was the test itself (a missing `timeout` argument), not the code under test. That habit of reading the failure message carefully rather than assuming "test failed = code is wrong" saved me from reverting a correct fix.
+
+**What I would do differently:** Next time I work with AI on a debugging task, I would ask it to explain the execution flow *before* suggesting a fix — not just point at the line to change. In this project the AI correctly identified the fix, but I had to ask follow-up questions to understand *why* `st.stop()` caused the submit handler to be unreachable. Getting the explanation first would have made me faster at spotting similar patterns in the future.
+
+**How this project changed my thinking:** AI-generated code looks confident and correct on the surface, but this project showed that it can contain subtle state-management bugs that only appear under specific sequences of user actions (like finishing a game and then restarting). I now treat AI-generated code the same way I would treat code from a new teammate — read it, understand it, and test the edge cases myself rather than assuming it works because it runs without crashing.
