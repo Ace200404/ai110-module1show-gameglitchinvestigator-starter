@@ -4,33 +4,20 @@ Answer each question in 3 to 5 sentences. Be specific and honest about what actu
 
 ## 1. What was broken when you started?
 
-- What did the game look like the first time you ran it?
-- List at least two concrete bugs you noticed at the start  
-  (for example: "the hints were backwards").
+The first time I ran the game it appeared to work on the surface — I could type a number and click Submit — but something was clearly wrong. The hint always said "Go HIGHER!" regardless of whether my guess was too high or too low. The Developer Debug Info panel showed the secret number stored as a dict-like structure (`{0: 40, 1: 40}`) rather than a plain integer, which made no sense. After losing a game and clicking New Game, the attempt counter reset visually but pressing Submit did absolutely nothing — no hint, no attempt cost, no error.
+
+Two concrete bugs I noticed immediately: (1) the hints were backwards or always wrong — guessing above the secret still said "Go HIGHER!", and (2) after a game ended the Submit button stopped responding entirely, even after starting a new game.
 
 **Bug Reproduction Log**
 
-Document at least 3 bugs you found. Add rows as needed.
+| Input | Expected Behavior | Actual Behavior | Console Output / Error |
+|---|---|---|---|
+| New Game after win/loss | Restarts the game, Submit works again | Submit does nothing — no hint, no attempt decrement | None |
+| Any guess | Attempts decrease by 1 until zero | Stopped at 1 but allowed one more attempt | None |
+| Submit a guess | Shows "Too High" or "Too Low" hint | Always said "Go HIGHER!" | None |
+| Type the same number twice | Reduce attempts by 1 with a warning | Reduced attempts by 1 again silently | None |
+| Developer Debug Info | Shows the secret as a plain integer | Showed a dict `{0: 40, 1: 40}` | None |
 
-| Input | Expected Behavior         | Actual Behavior      | Console Output / Error |
-|-------|---------------------------|----------------------|---------------------------|
-|New game| should restart the game    doesn't restart        None
-|attempts| should decrease attemps    stopes at 1 but         None
-            by 1 until zero           allows one more attempt
-|submit  | higher or lower            always says high        None
-|inputing  inpuit a diffrent number   reduce attempts by 1    None
-the same  
-number|
-|developer  just the value            [0:40,1:40]
-debug shows a dict|
-
-
-##  Bug Reproduction Logs
-| Input       | Expected Behavior         | Actual Behavior      | Console Output / Error |
-new attempt      restart the attmepts       nothing happens         None
-show hint       higher or lower               noly says higher      None
-attempts count    decreases count by 1      shows a message count   None
-                  till we hit zero          1 'out of attempts       
 ---
 
 ## 2. How did you use AI as a teammate?
